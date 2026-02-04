@@ -5,6 +5,8 @@
 This project implements a **large-scale book recommendation engine** using **Natural Language Processing (NLP)**.  
 It generates **semantic embeddings** for over **1 million books** using an **LSTM-based model trained with self-supervised triplet loss**, and serves recommendations via a **FastAPI backend**.
 
+download data, embeddings and tfidf from here: https://drive.google.com/drive/folders/1dnTdDDlWa3BFaPdeN_fCEEDd2W-200NS?usp=sharing
+
 The system uses a **hybrid retrieval strategy**:
 1. **TF-IDF (lexical retrieval)** for candidate generation  
 2. **LSTM semantic embeddings** for fine-grained ranking  
