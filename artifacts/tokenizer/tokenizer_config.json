@@ -1,0 +1,6 @@
+{
+    "max_vocab_size": 50000,
+    "max_sequence_length": 300,
+    "oov_token": "<OOV>",
+    "actual_vocab_size": 933536
+}

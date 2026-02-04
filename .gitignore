@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.env
+.vscode/
+.idea/
+
+data/
+artifacts/embeddings/book_embeddings.npy
+artifacts/tfidf/tfidf_matrix.pkl
