@@ -1,35 +1,40 @@
-# 📚 Book Recommendation System (NLP + LSTM + Hybrid Retrieval)
-
-## 🔍 Project Overview
-
-This project implements a **large-scale book recommendation engine** using **Natural Language Processing (NLP)**.  
-It generates **semantic embeddings** for over **1 million books** using an **LSTM-based model trained with self-supervised triplet loss**, and serves recommendations via a **FastAPI backend**.
-
-download data, embeddings and tfidf from here: https://drive.google.com/drive/folders/1dnTdDDlWa3BFaPdeN_fCEEDd2W-200NS?usp=sharing
-
-The system uses a **hybrid retrieval strategy**:
-1. **TF-IDF (lexical retrieval)** for candidate generation  
-2. **LSTM semantic embeddings** for fine-grained ranking  
-
-This design ensures both **topical correctness** and **semantic relevance**.
+# 📚 Book Recommendation System
+### NLP + LSTM + Hybrid Retrieval
 
 ---
 
-## 🧠 High-Level Architecture
+## 🔍 Project Overview
+
+A large-scale book recommendation engine using Natural Language Processing (NLP). It generates semantic embeddings for over 1 million books using an LSTM-based model trained with self-supervised triplet loss, and serves recommendations via a FastAPI backend.
+
+📦 **Download data, embeddings, and TF-IDF:** [Google Drive](https://drive.google.com/drive/folders/1dnTdDDlWa3BFaPdeN_fCEEDd2W-200NS?usp=sharing)
+
+---
+
+## 🧠 Core System — Recommendation Engine
+
+The system uses a **hybrid retrieval strategy**:
+
+- **TF-IDF** (lexical retrieval) → candidate generation
+- **LSTM semantic embeddings** → ranking
+
+This ensures topical correctness and semantic understanding.
+
+### High-Level Architecture
 
 ```
 User Query
-   ↓
+    ↓
 FastAPI (/recommend)
-   ↓
+    ↓
 Text Cleaning
-   ↓
+    ↓
 TF-IDF Candidate Selection (Top ~1000)
-   ↓
+    ↓
 LSTM Triplet Encoder (Query Embedding)
-   ↓
+    ↓
 Cosine Similarity (Embedding Re-ranking)
-   ↓
+    ↓
 Top-K Book Recommendations
 ```
 
@@ -41,186 +46,199 @@ Top-K Book Recommendations
 book-recommendation/
 │
 ├── app/
-│   ├── main.py              # FastAPI entry point
-│   ├── recommender.py       # Core inference logic (DO NOT break)
-│   └── schemas.py           # Request/response schemas
+│   ├── main.py               # FastAPI entry point
+│   ├── recommender.py        # Recommendation logic (DO NOT MODIFY CARELESSLY)
+│   └── schemas.py
 │
-├── artifacts/               # CRITICAL: production assets
+├── artifacts/                # Production assets
 │   ├── models/
-│   │   └── lstm_encoder_triplet.keras
 │   ├── embeddings/
-│   │   ├── book_embeddings.npy
-│   │   └── book_metadata.csv
+│   ├── tokenizer/
+│   └── tfidf/
+│
+├── autocomplete_lstm/        # ⭐ Autocomplete module
+│   ├── data/
+│   │   ├── titles.txt
+│   │   └── dataset.npz
+│   │
+│   ├── preprocessing/
+│   │   ├── extract_titles.py
+│   │   ├── check_tokenizer.py
+│   │   └── build_dataset.py
+│   │
+│   ├── model/
+│   │   └── train_lstm.py
+│   │
+│   ├── inference/
+│   │   └── predict.py
+│   │
 │   ├── tokenizer/
 │   │   └── tokenizer.pkl
-│   └── tfidf/
-│       ├── vectorizer.pkl
-│       └── tfidf_matrix.pkl
+│   │
+│   └── weights/
+│       └── lstm.pth
 │
-├── src/                     # Training & preprocessing scripts
-│   ├── preprocessing/
-│   ├── model/
-│   └── inference/
-│
+├── src/
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## 🏗️ What Has Already Been Done (IMPORTANT)
+## ✨ Autocomplete System
 
-### ✅ Data
-- Used Goodreads dataset (only CSVs with descriptions)
-- Cleaned, normalized, and filtered descriptions
-- Final dataset size: ~1.04M books
+### Goal
 
-### ✅ Tokenization
-- Keras tokenizer with:
-  - `max_vocab_size = 50,000`
-  - `max_sequence_length = 300`
-- Tokenizer is **frozen** and reused everywhere
+Given a partial query like `"harry potter"`, the system provides:
 
-### ✅ Model
-- **LSTM-based encoder**
-- Trained using **self-supervised triplet loss**
-- Objective:
-  - Pull embeddings of the same book together
-  - Push embeddings of different books apart
-- Output: **128-dimensional semantic embeddings**
+- 🔍 Matching book titles
+- 🔮 Next-word predictions
 
-### ✅ Embeddings
-- All books encoded offline
-- Stored as:
-  ```
-  artifacts/embeddings/book_embeddings.npy
-  ```
-- Embeddings are **L2-normalized**
+### Architecture
 
-### ✅ Retrieval Strategy
-- **Hybrid approach** (very important):
-  - TF-IDF → candidate filtering
-  - LSTM embeddings → semantic ranking
-- Pure embedding search was tested and found inferior without lexical grounding
+```
+User Input
+    ↓
+1. Exact Title Matching (Prefix Search)
+    ↓
+2. LSTM Prediction (Fallback)
+    ↓
+Output: Matching titles + Predicted continuation
+```
 
-### ✅ Deployment
-- Served via **FastAPI**
-- Single endpoint:
-  ```
-  POST /recommend
-  ```
-- Swagger UI available at:
-  ```
-  http://127.0.0.1:8000/docs
-  ```
+### Implementation Details
+
+| Component | Detail |
+|-----------|--------|
+| **Data** | 918,930 book titles extracted to `autocomplete_lstm/data/titles.txt` |
+| **Tokenizer** | Vocabulary size 50,000, built on titles only, stored at `autocomplete_lstm/tokenizer/tokenizer.pkl` |
+| **Dataset** | Sliding window (5-word input → 2-word output), ~4.97M samples, stored as `dataset.npz` |
+| **Model** | PyTorch LSTM: Embedding → LSTM → FC layer (predicts 2 words), GPU-enabled |
+
+### Why Hybrid?
+
+The LSTM model alone tends to predict generic phrases like `"of the"` or `"in the"` because it learns language frequency patterns rather than actual book titles. This is expected behavior for sequence models. The hybrid approach fixes this:
+
+| Approach | Problem |
+|----------|---------|
+| Only LSTM | Predicts generic phrases |
+| Only Matching | No intelligent completion |
+| **Hybrid** ✅ | Best of both |
+
+**Primary method — Exact Title Matching:** Matches user input directly against titles and returns real book names.
+
+**Secondary method — LSTM Prediction:** Used as a fallback when no strong title matches are found.
 
 ---
 
-## 🚀 How to Run the API (Local)
+## 🚀 API Reference
 
-### 1️⃣ Install dependencies
+### Start the Server
+
 ```bash
+# 1. Install dependencies
 pip install -r requirements.txt
-```
 
-### 2️⃣ Start the server
-```bash
+# 2. Start server
 python -m uvicorn app.main:app
+
+# 3. Open Swagger UI
+# http://127.0.0.1:8000/docs
 ```
 
-### 3️⃣ Open Swagger UI
-```
-http://127.0.0.1:8000/docs
-```
+### `POST /recommend`
 
-### 4️⃣ Example request
+Returns top-K book recommendations for a given query.
+
+### `POST /autocomplete`
+
+**Request:**
 ```json
 {
-  "query": "books about artificial intelligence",
-  "top_k": 10
+  "query": "harry potter"
+}
+```
+
+**Response:**
+```json
+{
+  "query": "harry potter",
+  "matches": [
+    "harry potter and the goblet of fire",
+    "harry potter and the chamber of secrets"
+  ],
+  "prediction": "and the"
 }
 ```
 
 ---
 
-## ⚠️ VERY IMPORTANT — DO NOT BREAK THESE
+## 🧪 Autocomplete Training Pipeline
 
-### ❌ Do NOT retrain unless you know what you’re doing
-- Tokenizer
-- TF-IDF vectorizer
-- Embeddings
-- LSTM model
+If rebuilding the autocomplete system from scratch:
 
-They are **tightly coupled**.
+```bash
+# Step 1: Extract titles
+python autocomplete_lstm/preprocessing/extract_titles.py
 
-### ❌ Do NOT delete `artifacts/`
-The API **depends on these at startup**.
+# Step 2: Build dataset
+python autocomplete_lstm/preprocessing/build_dataset.py
 
-### ❌ Do NOT return raw Pandas / NumPy objects from FastAPI
-- Always convert to native Python types
-- NaNs must be converted to `None`
-
-(This was already fixed in `recommender.py`.)
+# Step 3: Train model
+python autocomplete_lstm/model/train_lstm.py
+```
 
 ---
 
-## 🧪 If You Need to Retrain (Advanced)
+## ⚠️ Important Notes
 
-Only do this if:
-- You are changing the dataset
-- You are improving the model intentionally
+### Do NOT Modify
+- `artifacts/` — tokenizer, TF-IDF, and embeddings
+- Do not retrain the recommendation model unless explicitly required
 
-Correct order:
-1. Train LSTM with triplet loss
-2. Regenerate book embeddings
-3. Rebuild TF-IDF index (optional)
-4. Restart API
+### Known Limitations
 
----
+**Recommendation System:**
+- Dataset is academically weighted
+- Short queries can be vague
 
-## 🧠 Design Rationale (Why this works)
-
-- **TF-IDF** ensures topical relevance
-- **Triplet loss** gives real semantic separation
-- **Offline embedding generation** makes inference fast
-- **FastAPI** allows clean deployment and testing
-
-This mirrors **industry-grade recommendation systems**.
+**Autocomplete System:**
+- LSTM predictions are generic by design
+- Exact title matching is the primary method
 
 ---
 
-## 📌 Known Limitations (Expected)
+## 🔮 Future Improvements
 
-- Dataset is academic-heavy
-- Short queries can be ambiguous
-- “Romantic” may map to *romanticism* unless query is specific
-- Not optimized for approximate NN (FAISS not used yet)
-
----
-
-## 🔮 Possible Extensions
-
-- FAISS for faster similarity search
-- Language & year filters
-- Query expansion
+- FAISS for fast similarity search
+- Better autocomplete ranking
+- Transformer-based autocomplete
 - Web UI
-- Docker deployment
-- Cloud hosting (Render / Railway / AWS)
+- Cloud deployment
 
 ---
 
-## 👤 Handoff Notes
+## 👤 Contribution Summary
 
-If you’re continuing this project:
-- Start with `app/recommender.py`
-- Use Swagger UI to test
-- Treat `artifacts/` as read-only unless retraining
+**Existing System:**
+- Hybrid recommendation engine (TF-IDF + LSTM embeddings)
+- FastAPI deployment
+
+**New Work:**
+- Autocomplete system (titles-based)
+- PyTorch LSTM model
+- Dataset generation pipeline
+- Hybrid autocomplete (matching + prediction)
+- Swagger integration
 
 ---
 
-## ✅ Final Status
+## ✅ Status
 
-✔ End-to-end NLP pipeline  
-✔ Large-scale semantic embeddings  
-✔ Hybrid retrieval system  
-✔ Production-ready API  
+| Feature | Status |
+|---------|--------|
+| Large-scale NLP recommendation system | ✔ Complete |
+| Hybrid retrieval (TF-IDF + embeddings) | ✔ Complete |
+| Autocomplete system | ✔ Complete |
+| API-ready with Swagger UI | ✔ Complete |
+| GPU-supported training (PyTorch) | ✔ Complete |

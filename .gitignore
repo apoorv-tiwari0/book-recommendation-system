@@ -1,9 +1,25 @@
+# Python
 __pycache__/
 *.pyc
-.env
-.vscode/
-.idea/
+*.pyo
+*.pyd
 
-data/
-artifacts/embeddings/book_embeddings.npy
-artifacts/tfidf/tfidf_matrix.pkl
+# Virtual env
+nlp_venv/
+venv/
+
+# Large model/data files
+*.npy
+*.npz
+*.pth
+*.keras
+*.pkl
+
+# Autocomplete artifacts
+autocomplete_lstm/data/dataset.npz
+autocomplete_lstm/data/train_sequences.npy
+autocomplete_lstm/weights/
+
+# OS
+.DS_Store
+Thumbs.db

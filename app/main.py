@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.recommender import BookRecommender
 from app.schemas import QueryRequest, RecommendationResponse
+from app.autocomplete import hybrid_autocomplete
 
 app = FastAPI(
     title="Book Recommendation API",
@@ -17,3 +18,7 @@ def recommend_books(request: QueryRequest):
         request.top_k
     )
     return {"results": results}
+
+@app.get("/autocomplete")
+def autocomplete(query: str):
+    return hybrid_autocomplete(query)
